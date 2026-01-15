@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
-import { SECRET } from "./index.js";
+import { JWT_ACCESS_SECRET } from "./config/db.js";
 export default (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
@@ -19,8 +19,12 @@ export default (req: Request, res: Response, next: NextFunction) => {
     });
 
   try {
-    const user = jwt.verify(token, SECRET);
-    req.user = user;
-    next();
-  } catch (error) {}
+    jwt.verify(token, JWT_ACCESS_SECRET, (err, user) => {
+      if (err) res.status(403).json({ message: "Token expired or invalid" });
+      req.user = user;
+      next();
+    });
+  } catch (error) {
+    return res.status(403).json({ message: "Token expired or invalid" });
+  }
 };
