@@ -5,21 +5,21 @@ export const login = async (req: Request, res: Response) => {
   try {
     console.log("Request Body:", req.body);
     const { accessToken, refreshToken, user } = await AuthService.loginUser(
-      req.body
+      req.body,
     );
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true, // Set to false if testing on localhost without HTTPS
+      secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false, // Set to false if testing on localhost without HTTPS
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ status: "success", data: { accessToken } });
+    await AuthService.storeHasedRefreshToken(refreshToken, user.id);
+
+    res.status(200).json({ status: "success", data: { accessToken, user } });
   } catch (error: any) {
-    res
-      .status(error.status || 500)
-      .json({ status: "Fail", message: error.message });
+    res.status(500).json({ status: "Fail", message: error.message });
   }
 };
 
@@ -28,7 +28,7 @@ export const register = async (req: Request, res: Response) => {
     const user = await AuthService.registerUser(req.body);
     res.status(201).json({ status: "success", data: { user } });
   } catch (error: any) {
-    res.status(error.status).json({ status: "Fail", message: error.message });
+    res.status(500).json({ status: "Fail", message: error.message });
   }
 };
 
@@ -38,9 +38,18 @@ export const refresh = async (req: Request, res: Response) => {
     if (!refreshToken) {
       throw (new Error("No refresh token provided").cause = 401);
     }
-    const { accessToken } = await AuthService.refreshAccessToken(refreshToken);
+    const { accessToken, newRefreshToken } =
+      await AuthService.refreshAccessToken(refreshToken);
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false, // Set to false if testing on localhost without HTTPS
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(200).json({ status: "success", data: { accessToken } });
   } catch (error: any) {
-    res.status(error.status).json({ status: "Fail", message: error.message });
+    res.status(401).json({ status: "Fail", message: error.message });
   }
 };

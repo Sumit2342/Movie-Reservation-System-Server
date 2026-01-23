@@ -1,6 +1,18 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { prisma, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from "../config/db.js";
+import {
+  prisma,
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  REFRESH_TOKEN_EXPIRY_MS,
+  REFRESH_TOKEN_ABSOLUTE_EXPIRY_MS,
+} from "../config/db.js";
+import crypto from "crypto";
+
+import type { User } from "@prisma/client";
+
+export const hashToken = (refreshToken: string) =>
+  crypto.createHash("sha256").update(refreshToken).digest("hex");
 
 export const registerUser = async (userData: any) => {
   const existingUser = await prisma.user.findUnique({
@@ -22,10 +34,14 @@ export const loginUser = async (userData: any) => {
     throw (new Error("Invalid credentials").cause = 400);
   }
 
-  const accessToken = jwt.sign({ email: user.email }, JWT_ACCESS_SECRET, {
-    expiresIn: "15m",
-  });
-  const refreshToken = jwt.sign({ email: user.email }, JWT_REFRESH_SECRET, {
+  const accessToken = jwt.sign(
+    { sub: user.id, role: user.role },
+    JWT_ACCESS_SECRET,
+    {
+      expiresIn: "15m",
+    },
+  );
+  const refreshToken = jwt.sign({ sub: user.id }, JWT_REFRESH_SECRET, {
     expiresIn: "7d",
   });
 
@@ -35,14 +51,63 @@ export const loginUser = async (userData: any) => {
 export const refreshAccessToken = async (refreshToken: string) => {
   const payload = jwt.verify(
     refreshToken,
-    JWT_REFRESH_SECRET
+    JWT_REFRESH_SECRET,
   ) as jwt.JwtPayload;
 
-  if (!payload.email) {
-    throw (new Error("Invalid refresh token").cause = 400);
-  }
-  const accessToken = jwt.sign({ email: payload.email }, JWT_ACCESS_SECRET, {
-    expiresIn: "15m",
+  const userId = payload.sub;
+  if (!userId) throw new Error("Invalid refresh token");
+
+  const hashed = hashToken(refreshToken);
+
+  const session = await prisma.refresh_Tokens.findUnique({
+    where: { token_hash: hashed },
+    include: { user: true },
   });
-  return { accessToken };
+
+  if (!session) throw new Error("Refresh token revoked");
+
+  const now = new Date();
+  if (now > session.absolute_expires_at) {
+    throw new Error("Session expired. Please login again");
+  }
+
+  const newRefreshToken = jwt.sign({ sub: userId }, JWT_REFRESH_SECRET, {
+    expiresIn: "7d",
+  });
+
+  await prisma.refresh_Tokens.update({
+    where: { id: session.id },
+    data: {
+      token_hash: hashToken(newRefreshToken),
+      expires_at: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS),
+    },
+  });
+
+  const accessToken = jwt.sign(
+    { sub: userId, role: session.user.role },
+    JWT_ACCESS_SECRET,
+    { expiresIn: "15m" },
+  );
+
+  return { accessToken, newRefreshToken };
+};
+
+export const storeHasedRefreshToken = async (
+  refreshToken: string,
+  id: string,
+) => {
+  const hashedRefreshToken = hashToken(refreshToken);
+  const expireDate = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
+  const absoluteExpireDate = new Date(
+    Date.now() + REFRESH_TOKEN_ABSOLUTE_EXPIRY_MS,
+  );
+  console.log("storing refreshToken");
+  await prisma.refresh_Tokens.create({
+    data: {
+      user_id: id,
+      token_hash: hashedRefreshToken,
+      expires_at: expireDate,
+      absolute_expires_at: absoluteExpireDate,
+    },
+  });
 };
