@@ -111,3 +111,17 @@ export const storeHasedRefreshToken = async (
     },
   });
 };
+
+export const logoutUser = async (refreshToken: string) => {
+  const hashed = hashToken(refreshToken);
+
+  await prisma.refresh_Tokens.deleteMany({
+    where: { token_hash: hashed },
+  });
+};
+
+export const logoutAll = async (userId: string) => {
+  await prisma.refresh_Tokens.deleteMany({
+    where: { user_id: userId },
+  });
+};

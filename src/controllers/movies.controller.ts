@@ -18,7 +18,7 @@ export const addMovies = async (req: Request, res: Response) => {
     const { movie_name } = req.body;
     await movieService.addMovies({
       movie_name,
-      user_id: req.user.id,
+      user_id: req.user.sub,
     });
     return res.status(200).json({
       status: "success",
@@ -47,6 +47,16 @@ export const deleteMovie = async (req: Request, res: Response) => {
       status: "sucess",
     });
   } catch (error: any) {
-    res.status(500).json({ status: "success", error: error });
+    res.status(500).json({ status: "fail", error: error });
+  }
+};
+
+export const addMovieHalls = async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    await movieService.createMovieHall({ name });
+    return res.status(200).json({ status: "success" });
+  } catch (error: any) {
+    res.status(500).json({ status: "fail", error: error.message });
   }
 };

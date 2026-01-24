@@ -20,6 +20,7 @@ model User {
   is_active Boolean @default(true)
   movies Movies[]
   referes_tokens Refresh_Tokens[]
+  bookings Bookings[]
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 }
@@ -38,8 +39,112 @@ model Refresh_Tokens {
 model Movies {
   id        String      @id @default(uuid())
   movie_name String 
+  image_url String?
   user_id   String
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  showtimes Showtimes[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+model MovieHalls {
+  id          String   @id @default(uuid())
+  name        String
+
+  seats       Seats[]
+  showtimes   Showtimes[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model Seats {
+  id           String      @id @default(uuid())
+  hall_id      String
+  hall         MovieHalls @relation(fields: [hall_id], references: [id])
+
+  row          String
+  seat_number  String
+
+  showtimeSeats showtimeSeats[]
+  bookingSeats booking_seats[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+model Showtimes {
+  id          String      @id @default(uuid())
+  movie_id    String
+  hall_id     String
+
+  movie       Movies     @relation(fields: [movie_id], references: [id])
+  hall        MovieHalls @relation(fields: [hall_id], references: [id])
+
+  start_time  DateTime
+  end_time    DateTime
+  price       Int        // price in smallest unit (e.g. cents)
+
+  seats       showtimeSeats[]
+  bookings    Bookings[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+enum seatStatus {
+  AVAILABLE
+  LOCKED
+  BOOKED
+}
+
+model showtimeSeats {
+  id            String      @id @default(uuid())
+  showtime_id   String
+  seat_id       String
+
+  showtime      Showtimes  @relation(fields: [showtime_id], references: [id])
+  seat          Seats      @relation(fields: [seat_id], references: [id])
+
+  status        seatStatus @default(AVAILABLE)
+  locked_until  DateTime?
+
+  @@unique([showtime_id, seat_id])
+}
+
+enum bookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+model Bookings {
+  id           String         @id @default(uuid())
+  user_id      String
+  showtime_id  String
+
+  user         User           @relation(fields: [user_id], references: [id])
+  showtime     Showtimes      @relation(fields: [showtime_id], references: [id])
+
+  status       bookingStatus  @default(PENDING)
+
+  seats        booking_seats[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+model booking_seats {
+  booking_id  String
+  seat_id     String
+
+  booking     Bookings @relation(fields: [booking_id], references: [id])
+  seat        Seats    @relation(fields: [seat_id], references: [id])
+
+  @@id([booking_id, seat_id])
 }

@@ -19,12 +19,16 @@ export default (req: Request, res: Response, next: NextFunction) => {
     });
 
   try {
-    jwt.verify(token, JWT_ACCESS_SECRET, (err, user) => {
-      if (err) res.status(403).json({ message: "Token expired or invalid" });
-      req.user = user;
-      next();
-    });
+    const payload = jwt.verify(token, JWT_ACCESS_SECRET) as any;
+    req.user = {
+      sub: payload.sub,
+      role: payload.role,
+    };
+    next();
   } catch (error) {
-    return res.status(403).json({ message: "Token expired or invalid" });
+    return res.status(401).json({
+      status: "fail",
+      message: "Token expired or invalid",
+    });
   }
 };

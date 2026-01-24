@@ -1,9 +1,16 @@
 import { Request } from "express";
 import { User } from "./index.ts";
+
+export interface User {
+  sub: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
 declare global {
   namespace Express {
     interface Request {
-      user?: any; // Or use a specific User interface if you have one
+      user?: User; // Or use a specific User interfa
     }
   }
 }

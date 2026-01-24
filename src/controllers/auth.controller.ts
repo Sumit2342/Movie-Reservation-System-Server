@@ -53,3 +53,40 @@ export const refresh = async (req: Request, res: Response) => {
     res.status(401).json({ status: "Fail", message: error.message });
   }
 };
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (refreshToken) {
+      await AuthService.logoutUser(refreshToken);
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENVIRONMENT === "PRODUCTION",
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    // Logout should never hard-fail
+    return res.status(200).json({
+      status: "success",
+      message: "Logged out",
+    });
+  }
+};
+
+export const logoutAllDevices = async (req: Request, res: Response) => {
+  try {
+    await AuthService.logoutAll(req.user.sub);
+    res.clearCookie("refreshToken");
+    res.json({ status: "success" });
+  } catch (error: any) {
+    return res.status(500).json({ status: "fail", error: error.message });
+  }
+};

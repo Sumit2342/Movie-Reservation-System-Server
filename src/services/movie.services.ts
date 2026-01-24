@@ -1,7 +1,7 @@
 import { prisma } from "../config/db.js";
 
 type Movie = {};
-export const getAllMovieService = async (user_id: number) => {
+export const getAllMovieService = async (user_id: string) => {
   const allMovies = await prisma.movies.findMany({
     where: { user_id: user_id },
   });
@@ -15,7 +15,7 @@ export const addMovies = async (movie: any) => {
   return addMovie;
 };
 
-export const updateMovie = async (id: number, movieName: string) => {
+export const updateMovie = async (id: string, movieName: string) => {
   const updatedMovie = await prisma.movies.update({
     where: { id: id },
     data: { movie_name: movieName },
@@ -24,6 +24,10 @@ export const updateMovie = async (id: number, movieName: string) => {
   return updateMovie;
 };
 
-export const deleteMovie = async (id: number) => {
+export const deleteMovie = async (id: string) => {
   await prisma.movies.delete({ where: { id: id } });
+};
+
+export const createMovieHall = async (hall: any) => {
+  await prisma.MovieHalls.create({ data: hall });
 };
