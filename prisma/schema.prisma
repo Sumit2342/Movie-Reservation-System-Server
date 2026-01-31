@@ -69,9 +69,15 @@ model Seats {
   seat_number  String
 
   showtimeSeats showtimeSeats[]
-  bookingSeats booking_seats[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+enum showtimeStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
 }
 
 
@@ -85,7 +91,8 @@ model Showtimes {
 
   start_time  DateTime
   end_time    DateTime
-  price       Int        // price in smallest unit (e.g. cents)
+  price       Int        
+  status      showtimeStatus @default(UPCOMING)
 
   seats       showtimeSeats[]
   bookings    Bookings[]
@@ -108,6 +115,7 @@ model showtimeSeats {
 
   showtime      Showtimes  @relation(fields: [showtime_id], references: [id])
   seat          Seats      @relation(fields: [seat_id], references: [id])
+  bookingSeats booking_seats[]
 
   status        seatStatus @default(AVAILABLE)
   locked_until  DateTime?
@@ -141,10 +149,10 @@ model Bookings {
 
 model booking_seats {
   booking_id  String
-  seat_id     String
+  showtime_seat_id String
 
   booking     Bookings @relation(fields: [booking_id], references: [id])
-  seat        Seats    @relation(fields: [seat_id], references: [id])
+  showtimeSeat     showtimeSeats @relation(fields: [showtime_seat_id], references: [id])
 
-  @@id([booking_id, seat_id])
+  @@id([booking_id, showtime_seat_id])
 }

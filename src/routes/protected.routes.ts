@@ -27,4 +27,14 @@ router.post(
   authorize(["ADMIN"]),
   movieController.addMovieHalls,
 );
+router.post(
+  "/create-showtime",
+  auth,
+  authorize(["ADMIN"]),
+  movieController.addMovieShowtimes,
+);
+
+router.get("/get-upcoming-shows", auth, movieController.getShowtimes);
+
+router.post("/book-seats", auth, movieController.bookMovieTickets);
 export default router;

@@ -1,3 +1,4 @@
+import type { Seats } from "@prisma/client";
 import { prisma } from "../config/db.js";
 
 type Movie = {};
@@ -28,6 +29,127 @@ export const deleteMovie = async (id: string) => {
   await prisma.movies.delete({ where: { id: id } });
 };
 
-export const createMovieHall = async (hall: any) => {
-  await prisma.MovieHalls.create({ data: hall });
+export const createMovieHall = async (hallData: any) => {
+  const { name, row, seatsPerRow } = hallData;
+  const seats: Array<{ hall_id: string; row: string; seat_number: string }> =
+    [];
+  return prisma.$transaction(async (tx) => {
+    const hall = await tx.movieHalls.create({ data: { name } });
+    for (let r = 0; r < row; r++) {
+      const rowChar = String.fromCharCode(65 + r);
+      for (let s = 1; s <= seatsPerRow; s++) {
+        seats.push({
+          hall_id: hall.id,
+          row: rowChar,
+          seat_number: s.toString(),
+        });
+      }
+    }
+    await tx.seats.createMany({ data: seats });
+  });
+};
+
+export const createShowtimes = async (showtimeData: any) => {
+  return prisma.$transaction(async (tx) => {
+    if (showtimeData.start_time >= showtimeData.end_time) {
+      throw new Error("Start time must be before end time");
+    }
+
+    const overlapShowtime = await tx.showtimes.findFirst({
+      where: {
+        hall_id: showtimeData.hall_id,
+        start_time: { lt: showtimeData.end_time },
+        end_time: { gt: showtimeData.start_time },
+      },
+    });
+
+    if (overlapShowtime) {
+      throw new Error("Showtime already exists with this timing");
+    }
+
+    const showtime = await tx.showtimes.create({
+      data: showtimeData,
+    });
+
+    const seats = await tx.seats.findMany({
+      where: { hall_id: showtime.hall_id },
+    });
+
+    const showTimeSeatsData = seats.map((seat) => ({
+      showtime_id: showtime.id,
+      seat_id: seat.id,
+      status: "AVAILABLE" as const,
+      locked_until: null,
+    }));
+
+    await tx.showtimeSeats.createMany({
+      data: showTimeSeatsData,
+      skipDuplicates: true,
+    });
+
+    return showtime;
+  });
+};
+
+export const getAllShowtimes = async () => {
+  const now = new Date();
+
+  return prisma.showtimes.findMany({
+    where: {
+      status: "UPCOMING",
+      start_time: { gte: now },
+    },
+    orderBy: {
+      start_time: "asc",
+    },
+    include: {
+      movie: {
+        select: {
+          id: true,
+          movie_name: true,
+          image_url: true,
+        },
+      },
+      hall: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+};
+
+export const bookingMovieTicket = async (
+  seat_ids: string[],
+  showtime_id: string,
+  userId: string,
+) => {
+  return await prisma.$transaction(async (tx) => {
+    const resultSeats = await tx.showtimeSeats.updateMany({
+      where: { id: { in: seat_ids }, showtime_id, status: "AVAILABLE" },
+      data: {
+        status: "LOCKED",
+        locked_until: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
+    if (resultSeats.count !== seat_ids.length)
+      throw new Error("Seat is no longer available");
+
+    const booking = await tx.bookings.create({
+      data: { user_id: userId, showtime_id: showtime_id, status: "PENDING" },
+    });
+
+    const bookingSeatsData = seat_ids.map((seatId) => ({
+      booking_id: booking.id,
+      showtime_seat_id: seatId,
+    }));
+
+    console.log(bookingSeatsData);
+
+    await tx.booking_seats.createMany({
+      data: bookingSeatsData,
+    });
+    return booking;
+  });
 };
