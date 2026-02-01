@@ -22,7 +22,7 @@ model User {
   referes_tokens Refresh_Tokens[]
   bookings Bookings[]
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Refresh_Tokens {
@@ -33,13 +33,14 @@ model Refresh_Tokens {
   expires_at DateTime
   absolute_expires_at DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Movies {
   id        String      @id @default(uuid())
   movie_name String 
   image_url String?
+  genre String ?
   user_id   String
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   showtimes Showtimes[]
@@ -63,7 +64,7 @@ model MovieHalls {
 model Seats {
   id           String      @id @default(uuid())
   hall_id      String
-  hall         MovieHalls @relation(fields: [hall_id], references: [id])
+  hall         MovieHalls @relation(fields: [hall_id], references: [id], onDelete: Cascade)
 
   row          String
   seat_number  String
@@ -86,8 +87,8 @@ model Showtimes {
   movie_id    String
   hall_id     String
 
-  movie       Movies     @relation(fields: [movie_id], references: [id])
-  hall        MovieHalls @relation(fields: [hall_id], references: [id])
+  movie       Movies     @relation(fields: [movie_id], references: [id], onDelete: Cascade)
+  hall        MovieHalls @relation(fields: [hall_id], references: [id], onDelete: Cascade)
 
   start_time  DateTime
   end_time    DateTime
@@ -99,6 +100,8 @@ model Showtimes {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([movie_id, hall_id, start_time])
 }
 
 
@@ -113,8 +116,8 @@ model showtimeSeats {
   showtime_id   String
   seat_id       String
 
-  showtime      Showtimes  @relation(fields: [showtime_id], references: [id])
-  seat          Seats      @relation(fields: [seat_id], references: [id])
+  showtime      Showtimes  @relation(fields: [showtime_id], references: [id], onDelete:Cascade)
+  seat          Seats      @relation(fields: [seat_id], references: [id], onDelete:Cascade)
   bookingSeats booking_seats[]
 
   status        seatStatus @default(AVAILABLE)
@@ -135,8 +138,8 @@ model Bookings {
   user_id      String
   showtime_id  String
 
-  user         User           @relation(fields: [user_id], references: [id])
-  showtime     Showtimes      @relation(fields: [showtime_id], references: [id])
+  user         User           @relation(fields: [user_id], references: [id],onDelete:Cascade)
+  showtime     Showtimes      @relation(fields: [showtime_id], references: [id], onDelete:Cascade)
 
   status       bookingStatus  @default(PENDING)
 
@@ -151,8 +154,8 @@ model booking_seats {
   booking_id  String
   showtime_seat_id String
 
-  booking     Bookings @relation(fields: [booking_id], references: [id])
-  showtimeSeat     showtimeSeats @relation(fields: [showtime_seat_id], references: [id])
+  booking     Bookings @relation(fields: [booking_id], references: [id], onDelete:Cascade)
+  showtimeSeat     showtimeSeats @relation(fields: [showtime_seat_id], references: [id],onDelete:Cascade)
 
   @@id([booking_id, showtime_seat_id])
 }

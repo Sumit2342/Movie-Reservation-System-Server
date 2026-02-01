@@ -1,5 +1,9 @@
 import * as z from "zod";
 
+export const deleteMovieRequestBody = z.object({
+  movie_id: z.string().uuid(),
+});
+
 export const showtimeRequesBody = z
   .object({
     movie_id: z.string(),
@@ -18,4 +22,10 @@ export const ticketBookingRequestBody = z.object({
     .array(z.string().uuid())
     .min(1, "At least one seat must be selected"),
   showtime_id: z.string(),
+});
+
+export const updateShowtimeStatusRequestBody = z.object({
+  showtime_id: z.string().uuid(),
+  movie_id: z.string().optional(),
+  status: z.enum(["ONGOING", "COMPLETED", "CANCELLED"]),
 });

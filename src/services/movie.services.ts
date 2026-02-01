@@ -1,7 +1,12 @@
 import type { Seats } from "@prisma/client";
 import { prisma } from "../config/db.js";
+import { BadRequestError } from "../Error/httpErrors.js";
 
-type Movie = {};
+type ShowtimeData = {
+  showtime_id: string;
+  movie_id?: string | undefined;
+  status: "ONGOING" | "COMPLETED" | "CANCELLED";
+};
 export const getAllMovieService = async (user_id: string) => {
   const allMovies = await prisma.movies.findMany({
     where: { user_id: user_id },
@@ -52,7 +57,7 @@ export const createMovieHall = async (hallData: any) => {
 export const createShowtimes = async (showtimeData: any) => {
   return prisma.$transaction(async (tx) => {
     if (showtimeData.start_time >= showtimeData.end_time) {
-      throw new Error("Start time must be before end time");
+      throw new BadRequestError("Start time must be before end time");
     }
 
     const overlapShowtime = await tx.showtimes.findFirst({
@@ -64,7 +69,7 @@ export const createShowtimes = async (showtimeData: any) => {
     });
 
     if (overlapShowtime) {
-      throw new Error("Showtime already exists with this timing");
+      throw new BadRequestError("Showtime already exists with this timing");
     }
 
     const showtime = await tx.showtimes.create({
@@ -134,7 +139,7 @@ export const bookingMovieTicket = async (
       },
     });
     if (resultSeats.count !== seat_ids.length)
-      throw new Error("Seat is no longer available");
+      throw new BadRequestError("Seat is no longer available");
 
     const booking = await tx.bookings.create({
       data: { user_id: userId, showtime_id: showtime_id, status: "PENDING" },
@@ -152,4 +157,26 @@ export const bookingMovieTicket = async (
     });
     return booking;
   });
+};
+
+export const updateShowtimeService = async (showtimeData: ShowtimeData) => {
+  const { showtime_id, status } = showtimeData;
+  const updatedShowtime = await prisma.$transaction(async (tx) => {
+    return tx.showtimes.update({
+      where: { id: showtime_id },
+      data: { status: status },
+    });
+  });
+  return updatedShowtime;
+};
+
+export const removeShowtime = async (showtime_id: string) => {
+  await prisma.showtimes.delete({ where: { id: showtime_id } });
+};
+
+export const getMovieShowtimesService = async (movie_id: string) => {
+  const movieShowtimes = await prisma.showtimes.findMany({
+    where: { movie_id: movie_id },
+  });
+  return movieShowtimes;
 };

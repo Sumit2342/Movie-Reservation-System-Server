@@ -37,4 +37,18 @@ router.post(
 router.get("/get-upcoming-shows", auth, movieController.getShowtimes);
 
 router.post("/book-seats", auth, movieController.bookMovieTickets);
+router.put(
+  "/update-showtime-status",
+  auth,
+  authorize(["ADMIN"]),
+  movieController.updateShowtime,
+);
+router.delete(
+  "/delete-showtime",
+  auth,
+  authorize(["ADMIN"]),
+  movieController.deleteShowtimes,
+);
+
+router.get("/getMovieShowtime", auth, movieController.getMovieShowtime);
 export default router;
