@@ -9,14 +9,14 @@ const router = Router();
 router.get("/profile", auth, profileController.profile);
 router.get("/allMovies", auth, movieController.getMovies);
 router.post("/addMovie", auth, authorize(["ADMIN"]), movieController.addMovies);
-router.post(
-  "/updateMovie",
+router.patch(
+  "/updateMovie/:id",
   auth,
   authorize(["ADMIN"]),
   movieController.updateMovie,
 );
-router.post(
-  "/deleteMovie",
+router.delete(
+  "/deleteMovie/:id",
   auth,
   authorize(["ADMIN"]),
   movieController.deleteMovie,

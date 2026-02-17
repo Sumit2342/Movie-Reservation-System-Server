@@ -18,6 +18,15 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+// Health check endpoint (add this)
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api", protectedRoutes);
 

@@ -7,6 +7,8 @@ import {
   deleteMovieRequestBody,
 } from "../schema/request.schema.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { BadRequestError, NotFoundError } from "@/Error/httpErrors.js";
+import type { MovieParams } from "@/types.js";
 
 export const getMovies = asyncHandler(async (req: Request, res: Response) => {
   const Allmovies = await movieService.getAllMovieService(req.user.sub);
@@ -27,22 +29,42 @@ export const addMovies = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const updateMovie = asyncHandler(async (req: Request, res: Response) => {
-  const { id, movie_name } = req.body;
-  const updatedMovie = await movieService.updateMovie(id, movie_name);
-  return res.status(200).json({
-    status: "success",
-    data: updatedMovie,
-  });
-});
+export const updateMovie = asyncHandler(
+  async (req: Request<MovieParams>, res: Response) => {
+    const id = req.params.id;
+    if (!id) {
+      throw new BadRequestError("Movie ID is required");
+    }
+    const existingMovie = await movieService.getMovieById(id);
+    if (!existingMovie) {
+      throw new NotFoundError(`Movie does not exist for this id:${id}`);
+    }
 
-export const deleteMovie = asyncHandler(async (req: Request, res: Response) => {
-  const { movie_id } = deleteMovieRequestBody.parse(req.body);
-  await movieService.deleteMovie(movie_id);
-  return res.status(200).json({
-    status: "success",
-  });
-});
+    const { movie_name } = req.body;
+    const updatedMovie = await movieService.updateMovie(id, movie_name);
+    return res.status(200).json({
+      status: "success",
+      data: updatedMovie,
+    });
+  },
+);
+
+export const deleteMovie = asyncHandler(
+  async (req: Request<MovieParams>, res: Response) => {
+    const movieId = req.params.id;
+    if (!movieId) {
+      throw new BadRequestError("Movie ID is required");
+    }
+    const existingMovie = await movieService.getMovieById(movieId);
+    if (!existingMovie) {
+      throw new NotFoundError(`Movie does not exist for this id:${movieId}`);
+    }
+    await movieService.deleteMovie(movieId);
+    return res.status(200).json({
+      status: "success",
+    });
+  },
+);
 
 export const addMovieHalls = asyncHandler(
   async (req: Request, res: Response) => {
@@ -56,6 +78,11 @@ export const addMovieHalls = asyncHandler(
 export const addMovieShowtimes = asyncHandler(
   async (req: Request, res: Response) => {
     const body = showtimeRequesBody.parse(req.body);
+    const movieId = body.movie_id;
+    const existingMovie = await movieService.getMovieById(movieId);
+    if (!existingMovie) {
+      throw new NotFoundError(`Movie does not exist for this id:${movieId}`);
+    }
     await movieService.createShowtimes(body);
     return res.status(200).json({ status: "success" });
   },

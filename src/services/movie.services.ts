@@ -1,4 +1,3 @@
-import type { Seats } from "@prisma/client";
 import { prisma } from "../config/db.js";
 import { BadRequestError } from "../Error/httpErrors.js";
 
@@ -14,6 +13,11 @@ export const getAllMovieService = async (user_id: string) => {
   if (!allMovies) throw new Error("No movies found for this user");
 
   return allMovies;
+};
+
+export const getMovieById = async (movieId: string) => {
+  const movie = await prisma.movies.findUnique({ where: { id: movieId } });
+  return movie;
 };
 
 export const addMovies = async (movie: any) => {

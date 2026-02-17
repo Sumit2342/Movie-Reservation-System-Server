@@ -10,6 +10,11 @@ import {
 import crypto from "crypto";
 
 import type { User } from "@prisma/client";
+import {
+  BadRequestError,
+  ConflictError,
+  UnauthorizedError,
+} from "@/Error/httpErrors.js";
 
 export const hashToken = (refreshToken: string) =>
   crypto.createHash("sha256").update(refreshToken).digest("hex");
@@ -18,7 +23,7 @@ export const registerUser = async (userData: any) => {
   const existingUser = await prisma.user.findUnique({
     where: { email: userData.email },
   });
-  if (existingUser) throw (new Error("Account already exists!").cause = 400);
+  if (existingUser) throw new ConflictError("Account already exists!");
 
   const hashedPassword = await bcrypt.hash(userData.password, 12);
   return await prisma.user.create({
@@ -31,7 +36,7 @@ export const loginUser = async (userData: any) => {
     where: { email: userData.email },
   });
   if (!user || !(await bcrypt.compare(userData.password, user.password))) {
-    throw (new Error("Invalid credentials").cause = 400);
+    throw new BadRequestError("Invalid credentials");
   }
 
   const accessToken = jwt.sign(
@@ -55,7 +60,7 @@ export const refreshAccessToken = async (refreshToken: string) => {
   ) as jwt.JwtPayload;
 
   const userId = payload.sub;
-  if (!userId) throw new Error("Invalid refresh token");
+  if (!userId) throw new BadRequestError("Invalid refresh token");
 
   const hashed = hashToken(refreshToken);
 
@@ -64,11 +69,12 @@ export const refreshAccessToken = async (refreshToken: string) => {
     include: { user: true },
   });
 
-  if (!session) throw new Error("Refresh token revoked");
+  if (!session)
+    throw new UnauthorizedError("Refresh token revoked.PLease login again");
 
   const now = new Date();
   if (now > session.absolute_expires_at) {
-    throw new Error("Session expired. Please login again");
+    throw new UnauthorizedError("Session expired. Please login again");
   }
 
   const newRefreshToken = jwt.sign({ sub: userId }, JWT_REFRESH_SECRET, {

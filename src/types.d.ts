@@ -7,6 +7,10 @@ export interface User {
   iat: number;
   exp: number;
 }
+
+export interface MovieParams {
+  id: string;
+}
 declare global {
   namespace Express {
     interface Request {

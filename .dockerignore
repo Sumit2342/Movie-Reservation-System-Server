@@ -1,0 +1,23 @@
+# .dockerignore
+node_modules
+npm-debug.log
+dist
+build
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+logs
+*.log
+coverage
+.vscode
+.idea
+README.md
+.DS_Store
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Keep prisma folder - we need it!
+!prisma/
