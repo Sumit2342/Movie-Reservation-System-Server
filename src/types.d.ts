@@ -14,7 +14,7 @@ export interface MovieParams {
 declare global {
   namespace Express {
     interface Request {
-      user?: User; // Or use a specific User interfa
+      user?: User;
     }
   }
 }

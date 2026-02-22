@@ -11,7 +11,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false, // Set to false if testing on localhost without HTTPS
+    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false,
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -36,7 +36,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false, // Set to false if testing on localhost without HTTPS
+    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false,
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
