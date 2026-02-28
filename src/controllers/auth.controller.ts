@@ -31,7 +31,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
   if (!refreshToken) {
     throw new ForbiddenError("No refresh token provided");
   }
-  const { accessToken, newRefreshToken } =
+  const { accessToken, newRefreshToken, user } =
     await AuthService.refreshAccessToken(refreshToken);
 
   res.cookie("refreshToken", newRefreshToken, {
@@ -41,7 +41,13 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  res.status(200).json({ status: "success", data: { accessToken } });
+  res.status(200).json({
+    status: "success",
+    data: {
+      accessToken,
+      user: { id: user.id, email: user.email, role: user.role },
+    },
+  });
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
@@ -53,7 +59,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION",
+    secure: process.env.NODE_ENVIRONMENT === "PRODUCTION" ? true : false,
     sameSite: "strict",
   });
 

@@ -95,7 +95,7 @@ export const refreshAccessToken = async (refreshToken: string) => {
     { expiresIn: "15m" },
   );
 
-  return { accessToken, newRefreshToken };
+  return { accessToken, newRefreshToken, user: session.user };
 };
 
 export const storeHasedRefreshToken = async (
